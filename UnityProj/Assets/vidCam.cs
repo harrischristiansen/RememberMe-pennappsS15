@@ -1,65 +1,144 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 
 public class vidCam : MonoBehaviour {
 	
-	public MeshRenderer[] UseWebcamTexture;
+	private Texture savedTexture;
 	private WebCamTexture webcamTexture;
 
 	int takeLeftIndent=5, takeTopIndent, takeWidth, takeHeight=45;
 	
-	void Start() {
-		webcamTexture = new WebCamTexture();
-		foreach(MeshRenderer r in UseWebcamTexture) {
-			r.material.mainTexture = webcamTexture;
-		}
-		renderer.material.mainTexture = webcamTexture;
-		webcamTexture.Play();
+	// Entry Screen
+	public GameObject entryScreen;
+	private Text statusTxt;
 
+	// Picture Info
+	string picFileName;
+	
+	void Start() {
+		// Find Back Cam
+		WebCamDevice[] devices = WebCamTexture.devices;
+		string backCamName="";
+		for( int i = 0 ; i < devices.Length ; i++ ) {
+			if (!devices[i].isFrontFacing) {
+				backCamName = devices[i].name;
+			}
+		}
+		
+		
+		webcamTexture = new WebCamTexture(backCamName,720,1280,30);
+		savedTexture = renderer.material.mainTexture;
+		renderer.material.mainTexture = webcamTexture;
+		webcamTexture.requestedHeight = 1280; // 960
+		webcamTexture.requestedWidth = 720; // 640
+		webcamTexture.Play();
+		transform.Rotate(Vector3.up, webcamTexture.videoRotationAngle);
+		if(webcamTexture.videoRotationAngle!=0) {
+			transform.localScale = new Vector3(1,1,0.63f);
+		}
+
+		// Locate Take Picture Button
 		takeTopIndent = Screen.height - takeHeight - 5;
 		takeWidth = Screen.width - 10;
+
+		// Setup UI
+		statusTxt = GameObject.Find ("statusTxt").GetComponent<Text>();
+		entryScreen.SetActive(false); // Hide Entry Canvas
 	}
 	
 	void OnGUI() {
 		if (webcamTexture.isPlaying) {
 			if (GUI.Button(new Rect(takeLeftIndent, takeTopIndent, takeWidth, takeHeight),"Take")) {
 				takePicture ();
-				webcamTexture.Pause();
 			}
 		}
-		/*
-		else {
-			if (GUI.Button(new Rect(disconnectLeftIndent, disconnectTopIndent, disconnectWidth, disconnectHeight),"Play")) {
-				webcamTexture.Play();
-			}
-		}
-		*/
 	}
 
 	void takePicture() {
+		// Pause Camera
+		webcamTexture.Pause();
+
 		// Create Texture2D
 		Texture2D snap = new Texture2D(webcamTexture.width, webcamTexture.height);
 		snap.SetPixels (webcamTexture.GetPixels());
 		snap.Apply ();
 
 		// Upload File
-		StartCoroutine(uploadPicture("testPic.png", snap));
+		StartCoroutine(uploadPicture(snap));
+		// Show Entry Canvas
+		StartCoroutine(showEntryField());
 
 		// Save File
 		//System.IO.File.WriteAllBytes("testasdf1234.png", snap.EncodeToPNG());
 	}
-	IEnumerator uploadPicture(string fileName, Texture2D picture) {
+	IEnumerator uploadPicture(Texture2D picture) {
+		picFileName = System.DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss") + ".png";
 		
+		// Create Form
 		WWWForm postForm = new WWWForm();
-		postForm.AddBinaryData("theFile",picture.EncodeToPNG(),fileName,"text/plain");
+		postForm.AddBinaryData("theFile",picture.EncodeToPNG(),picFileName,"text/plain");
 		
+		// Submit Form
 		WWW upload = new WWW("http://www.purduecs.com/PennApps/upload.php",postForm);
 		yield return upload;
-
+		
+		// Show Result Message
 		if (upload.error == null) {
-			Debug.Log("Upload Success:" + upload.text);
+			Debug.Log("Upload Success: " + upload.text);
+			statusTxt.text = "Upload Success: " + upload.text;
 		} else {
 			Debug.Log("Upload ERROR: " + upload.error);
+			statusTxt.text = "Upload ERROR: " + upload.error;
 		}
+	}
+	IEnumerator showEntryField() {
+		yield return new WaitForSeconds(1);
+		renderer.material.mainTexture = savedTexture;
+		entryScreen.SetActive(true); // Show Entry Canvas
+	}
+
+	public void submitFormFunc() {
+		StartCoroutine(submitForm());
+	}
+
+	IEnumerator submitForm() {
+		// Set Status To Saving
+		statusTxt.text = "Saving Form";
+
+		// Get Fields
+		string personName = GameObject.Find("NameInput").GetComponent<InputField>().value; // Save Person Name
+		string personProject = GameObject.Find("ProjectInput").GetComponent<InputField>().value; // Save Person Project
+		string personNotes = GameObject.Find("NotesInput").GetComponent<InputField>().value; // Save Person Notes
+
+		// Create Form
+		WWWForm postForm = new WWWForm();
+		postForm.AddField ("personName", personName);
+		postForm.AddField ("imgName", picFileName);
+		postForm.AddField ("personProject", personProject);
+		postForm.AddField ("personNotes", personNotes);
+
+		// Submit Form
+		WWW upload = new WWW("http://www.purduecs.com/PennApps/savePerson.php",postForm);
+		yield return upload;
+
+		// Show Result Message
+		if (upload.error == null) {
+			Debug.Log("Save Success: " + upload.text);
+			statusTxt.text = "Save Success: " + upload.text;
+		} else {
+			Debug.Log("Save ERROR: " + upload.error);
+			statusTxt.text = "Save ERROR: " + upload.error;
+		}
+
+		yield return new WaitForSeconds(2);
+		
+		returnToCamera();
+	}
+
+	public void returnToCamera() {
+		webcamTexture.Play();
+		entryScreen.SetActive(false); // Hide Entry Canvas
+		renderer.material.mainTexture = webcamTexture;
 	}
 }
