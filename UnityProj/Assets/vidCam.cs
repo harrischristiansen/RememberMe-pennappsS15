@@ -76,6 +76,8 @@ public class vidCam : MonoBehaviour {
 		//System.IO.File.WriteAllBytes("testasdf1234.png", snap.EncodeToPNG());
 	}
 	IEnumerator uploadPicture(Texture2D picture) {
+		statusTxt.text = "Uploading Image";
+		
 		picFileName = System.DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss") + ".png";
 		
 		// Create Form
@@ -89,7 +91,10 @@ public class vidCam : MonoBehaviour {
 		// Show Result Message
 		if (upload.error == null) {
 			Debug.Log("Upload Success: " + upload.text);
-			statusTxt.text = "Upload Success: " + upload.text;
+			statusTxt.text = "Upload Success";
+			if(!upload.text.Equals("Uploaded")) {
+				setFormFields(upload.text,"","");
+			}
 		} else {
 			Debug.Log("Upload ERROR: " + upload.error);
 			statusTxt.text = "Upload ERROR: " + upload.error;
