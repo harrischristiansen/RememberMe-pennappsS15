@@ -7,7 +7,7 @@ public class vidCam : MonoBehaviour {
 	private Texture savedTexture;
 	private WebCamTexture webcamTexture;
 
-	int takeLeftIndent=5, takeTopIndent, takeWidth, takeHeight=45;
+	int takeLeftIndent=5, takeTopIndent, takeWidth, takeHeight=70;
 	
 	// Entry Screen
 	public GameObject entryScreen;
@@ -33,8 +33,10 @@ public class vidCam : MonoBehaviour {
 		webcamTexture.requestedHeight = 1280; // 960
 		webcamTexture.requestedWidth = 720; // 640
 		webcamTexture.Play();
-		transform.Rotate(Vector3.up, webcamTexture.videoRotationAngle);
-		if(webcamTexture.videoRotationAngle!=0) {
+		if(webcamTexture.videoRotationAngle != 0) {
+			GameObject.Find ("PreviewImg").GetComponent<RectTransform>().Rotate(Vector3.forward, -90);
+			GameObject.Find ("PreviewImg").GetComponent<RectTransform>().localScale = new Vector3(1,0.63f,1);
+			transform.Rotate(Vector3.up, webcamTexture.videoRotationAngle);
 			transform.localScale = new Vector3(1,1,0.63f);
 		}
 
@@ -43,6 +45,7 @@ public class vidCam : MonoBehaviour {
 		takeWidth = Screen.width - 10;
 
 		// Setup UI
+		GameObject.Find ("PreviewImg").GetComponent<RawImage>().texture = webcamTexture;
 		statusTxt = GameObject.Find ("statusTxt").GetComponent<Text>();
 		entryScreen.SetActive(false); // Hide Entry Canvas
 	}
@@ -93,9 +96,16 @@ public class vidCam : MonoBehaviour {
 		}
 	}
 	IEnumerator showEntryField() {
-		yield return new WaitForSeconds(1);
-		renderer.material.mainTexture = savedTexture;
+		yield return new WaitForSeconds(0.1f);
+		renderer.material.mainTexture = savedTexture; // Set BG To White
 		entryScreen.SetActive(true); // Show Entry Canvas
+		setFormFields("","",""); // Clear Form
+	}
+	
+	void setFormFields(string personName, string personProject, string personNotes) {
+		GameObject.Find("NameInput").GetComponent<InputField>().value = personName;
+		GameObject.Find("ProjectInput").GetComponent<InputField>().value = personProject;
+		GameObject.Find("NotesInput").GetComponent<InputField>().value = personNotes;
 	}
 
 	public void submitFormFunc() {
@@ -131,7 +141,7 @@ public class vidCam : MonoBehaviour {
 			statusTxt.text = "Save ERROR: " + upload.error;
 		}
 
-		yield return new WaitForSeconds(2);
+		yield return new WaitForSeconds(1);
 		
 		returnToCamera();
 	}
