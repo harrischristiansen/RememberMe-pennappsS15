@@ -12,6 +12,7 @@ public class vidCam : MonoBehaviour {
 	// Entry Screen
 	public GameObject entryScreen;
 	private Text statusTxt;
+	public GameObject star;
 
 	// Picture Info
 	string picFileName;
@@ -48,6 +49,7 @@ public class vidCam : MonoBehaviour {
 		GameObject.Find ("PreviewImg").GetComponent<RawImage>().texture = webcamTexture;
 		statusTxt = GameObject.Find ("statusTxt").GetComponent<Text>();
 		entryScreen.SetActive(false); // Hide Entry Canvas
+		star.SetActive (false); // Hide Star
 	}
 	
 	void OnGUI() {
@@ -93,6 +95,8 @@ public class vidCam : MonoBehaviour {
 			Debug.Log("Upload Success: " + upload.text);
 			statusTxt.text = "Upload Success";
 			if(!upload.text.Equals("Uploaded")) {
+				statusTxt.text = "Found: "+upload.text;
+				star.SetActive (true);
 				setFormFields(upload.text,"","");
 			}
 		} else {
@@ -154,6 +158,7 @@ public class vidCam : MonoBehaviour {
 	public void returnToCamera() {
 		webcamTexture.Play();
 		entryScreen.SetActive(false); // Hide Entry Canvas
+		star.SetActive (false); // Hide Star
 		renderer.material.mainTexture = webcamTexture;
 	}
 }
